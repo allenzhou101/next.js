@@ -1860,7 +1860,7 @@ impl AggregationUpdateQueue {
         let _span = trace_span!("check optimize").entered();
 
         let task = ctx.task(task_id, TaskDataCategory::Meta);
-        let children_count = get!(task, ChildrenCount).copied().unwrap_or_default();
+        let children_count = count!(task, Child);
         if children_count == 0 {
             return;
         }
