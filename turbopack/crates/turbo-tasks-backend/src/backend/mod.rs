@@ -39,10 +39,10 @@ pub use self::{operation::AnyOperation, storage::TaskDataCategory};
 use crate::{
     backend::{
         operation::{
-            connect_children, get_aggregation_number, is_root_node, AggregatedDataUpdate,
-            AggregationUpdateJob, AggregationUpdateQueue, CleanupOldEdgesOperation,
-            ConnectChildOperation, ExecuteContext, ExecuteContextImpl, Operation, OutdatedEdge,
-            TaskDirtyCause, TaskGuard,
+            connect_children, get_aggregation_number, is_root_node, update_children_aggregation,
+            AggregatedDataUpdate, AggregationUpdateJob, AggregationUpdateQueue,
+            CleanupOldEdgesOperation, ConnectChildOperation, ExecuteContext, ExecuteContextImpl,
+            Operation, OutdatedEdge, TaskDirtyCause, TaskGuard,
         },
         persisted_storage_log::PersistedStorageLog,
         storage::{get, get_many, get_mut, get_mut_or_insert_with, iter_many, remove, Storage},
@@ -1180,8 +1180,58 @@ impl<B: BackingStorage> TurboTasksBackendInner<B> {
         stateful: bool,
         turbo_tasks: &dyn TurboTasksBackendApi<TurboTasksBackend<B>>,
     ) -> bool {
+        fn reschedule(mut task: impl TaskGuard, mut ctx: impl ExecuteContext) {
+            let Some(InProgressState::InProgress {
+                done_event,
+                new_children,
+                ..
+            }) = remove!(task, InProgress)
+            else {
+                unreachable!();
+            };
+            task.add_new(CachedDataItem::InProgress {
+                value: InProgressState::Scheduled { done_event },
+            });
+
+            // All `new_children` are currently hold active with an active count and we need to
+            // undo that.
+            AggregationUpdateQueue::run(
+                AggregationUpdateJob::DecreaseActiveCounts {
+                    task_ids: new_children.into_iter().collect(),
+                },
+                &mut ctx,
+            );
+        }
+
         let mut ctx = self.execute_context(turbo_tasks);
         let mut task = ctx.task(task_id, TaskDataCategory::All);
+        let Some(in_progress) = get!(task, InProgress) else {
+            panic!("Task execution completed, but task is not in progress: {task:#?}");
+        };
+        let &InProgressState::InProgress {
+            stale,
+            ref new_children,
+            ..
+        } = in_progress
+        else {
+            panic!("Task execution completed, but task is not in progress: {task:#?}");
+        };
+
+        // If the task is stale, reschedule it
+        if stale {
+            reschedule(task, ctx);
+            return true;
+        }
+
+        if !new_children.is_empty() {
+            let _span = tracing::trace_span!("update children aggregation").entered();
+            let mut queue = AggregationUpdateQueue::new();
+            update_children_aggregation(task_id, &task, new_children.iter().copied(), &mut queue);
+            drop(task);
+
+            queue.process(&mut ctx);
+            task = ctx.task(task_id, TaskDataCategory::All);
+        }
         let Some(in_progress) = get_mut!(task, InProgress) else {
             panic!("Task execution completed, but task is not in progress: {task:#?}");
         };
@@ -1196,28 +1246,10 @@ impl<B: BackingStorage> TurboTasksBackendInner<B> {
 
         // If the task is stale, reschedule it
         if stale {
-            let Some(InProgressState::InProgress {
-                done_event,
-                new_children,
-                ..
-            }) = remove!(task, InProgress)
-            else {
-                unreachable!();
-            };
-            task.add_new(CachedDataItem::InProgress {
-                value: InProgressState::Scheduled { done_event },
-            });
-
-            // All `new_children` are currently hold active with an active count and we need to undo
-            // that.
-            AggregationUpdateQueue::run(
-                AggregationUpdateJob::DecreaseActiveCounts {
-                    task_ids: new_children.into_iter().collect(),
-                },
-                &mut ctx,
-            );
+            reschedule(task, ctx);
             return true;
         }
+
         let mut new_children = take(new_children);
 
         // TODO handle stateful
