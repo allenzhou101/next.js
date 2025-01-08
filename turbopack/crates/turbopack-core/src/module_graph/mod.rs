@@ -517,13 +517,14 @@ impl Visit<SingleModuleGraphBuilderNode> for SingleModuleGraphBuilder {
             Ok(match (module, chunkable_ref_target) {
                 (Some(module), None) => {
                     let refs_cell = primary_chunkable_referenced_modules(*module);
-                    let refs = refs_cell.strongly_consistent().await?;
-                    let _refs_issues = refs_cell
-                        .take_collectibles::<Box<dyn Issue>>()
-                        .iter()
-                        .map(|issue| issue.to_resolved())
-                        .try_join()
-                        .await?;
+                    let refs = refs_cell.await?;
+                    // TODO This is currently too slow
+                    // let refs_issues = refs_cell
+                    //     .take_collectibles::<Box<dyn Issue>>()
+                    //     .iter()
+                    //     .map(|issue| issue.to_resolved())
+                    //     .try_join()
+                    // .await?;
 
                     refs.iter()
                         .flat_map(|(ty, modules)| {
