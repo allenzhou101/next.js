@@ -13,7 +13,10 @@ use crate::{
         storage::{get, get_many},
         TaskDataCategory,
     },
-    data::{CachedDataItem, CachedDataItemKey, CellRef, InProgressState, OutputValue},
+    data::{
+        CachedDataItem, CachedDataItemKey, CellRef, InProgressState, InProgressStateInner,
+        OutputValue,
+    },
 };
 
 #[derive(Serialize, Deserialize, Clone, Default)]
@@ -42,11 +45,11 @@ impl UpdateOutputOperation {
         mut ctx: impl ExecuteContext,
     ) {
         let mut task = ctx.task(task_id, TaskDataCategory::Meta);
-        let Some(InProgressState::InProgress {
+        let Some(InProgressState::InProgress(box InProgressStateInner {
             stale,
             new_children,
             ..
-        }) = get!(task, InProgress)
+        })) = get!(task, InProgress)
         else {
             panic!("Task is not in progress while updating the output");
         };
