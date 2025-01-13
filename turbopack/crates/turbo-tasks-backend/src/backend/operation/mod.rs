@@ -3,6 +3,7 @@ mod cleanup_old_edges;
 mod connect_child;
 mod connect_children;
 mod invalidate;
+mod prepare_new_children;
 mod update_cell;
 mod update_collectible;
 mod update_output;
@@ -751,6 +752,7 @@ pub use self::{
     cleanup_old_edges::OutdatedEdge,
     connect_children::connect_children,
     invalidate::TaskDirtyCause,
+    prepare_new_children::prepare_new_children,
     update_cell::UpdateCellOperation,
     update_collectible::UpdateCollectibleOperation,
 };

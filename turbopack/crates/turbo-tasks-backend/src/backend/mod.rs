@@ -39,10 +39,10 @@ pub use self::{operation::AnyOperation, storage::TaskDataCategory};
 use crate::{
     backend::{
         operation::{
-            connect_children, get_aggregation_number, is_root_node, AggregatedDataUpdate,
-            AggregationUpdateJob, AggregationUpdateQueue, CleanupOldEdgesOperation,
-            ConnectChildOperation, ExecuteContext, ExecuteContextImpl, Operation, OutdatedEdge,
-            TaskDirtyCause, TaskGuard,
+            connect_children, get_aggregation_number, is_root_node, prepare_new_children,
+            AggregatedDataUpdate, AggregationUpdateJob, AggregationUpdateQueue,
+            CleanupOldEdgesOperation, ConnectChildOperation, ExecuteContext, ExecuteContextImpl,
+            Operation, OutdatedEdge, TaskDirtyCause, TaskGuard,
         },
         persisted_storage_log::PersistedStorageLog,
         storage::{get, get_many, get_mut, get_mut_or_insert_with, iter_many, remove, Storage},
@@ -1253,17 +1253,22 @@ impl<B: BackingStorage> TurboTasksBackendInner<B> {
         let mut removed_data = Vec::new();
         let mut old_edges = Vec::new();
 
-        // Connect children
-        {
-            for old_child in iter_many!(task, Child { task } => task) {
-                if !new_children.remove(&old_child) {
-                    old_edges.push(OutdatedEdge::Child(old_child));
-                }
-            }
+        // Prepare all new children
+        prepare_new_children(task_id, &mut task, &new_children, &mut queue);
 
-            let active_count =
-                get!(task, Activeness).map_or(0, |activeness| activeness.active_counter);
-            connect_children(task_id, &mut task, new_children, &mut queue, active_count);
+        // Filter actual new children
+        let mut kept_children = Vec::new();
+        for old_child in iter_many!(task, Child { task } => task) {
+            if !new_children.remove(&old_child) {
+                old_edges.push(OutdatedEdge::Child(old_child));
+            } else {
+                kept_children.push(old_child);
+            }
+        }
+        if !kept_children.is_empty() {
+            queue.push(AggregationUpdateJob::DecreaseActiveCounts {
+                task_ids: kept_children,
+            });
         }
 
         // Remove no longer existing cells and notify in progress cells
@@ -1323,7 +1328,7 @@ impl<B: BackingStorage> TurboTasksBackendInner<B> {
         drop(task);
 
         {
-            let _span = tracing::trace_span!("CleanupOldEdgesOperation").entered();
+            let _span = tracing::trace_span!("remove old edges and prepare new children").entered();
             // Remove outdated edges first, before removing in_progress+dirty flag.
             // We need to make sure all outdated edges are removed before the task can potentially
             // be scheduled and executed again
@@ -1333,6 +1338,52 @@ impl<B: BackingStorage> TurboTasksBackendInner<B> {
         // When restoring from persistent caching the following might not be executed (since we can
         // suspend in `CleanupOldEdgesOperation`), but that's ok as the task is still dirty and
         // would be executed again.
+
+        let mut task = ctx.task(task_id, TaskDataCategory::All);
+        let Some(in_progress) = get!(task, InProgress) else {
+            panic!("Task execution completed, but task is not in progress: {task:#?}");
+        };
+        let InProgressState::InProgress(box InProgressStateInner { stale, .. }) = in_progress
+        else {
+            panic!("Task execution completed, but task is not in progress: {task:#?}");
+        };
+
+        // If the task is stale, reschedule it
+        if *stale {
+            let Some(InProgressState::InProgress(box InProgressStateInner {
+                done_event,
+                new_children,
+                ..
+            })) = remove!(task, InProgress)
+            else {
+                unreachable!();
+            };
+            task.add_new(CachedDataItem::InProgress {
+                value: InProgressState::Scheduled { done_event },
+            });
+
+            // All `new_children` are currently hold active with an active count and we need to undo
+            // that.
+            AggregationUpdateQueue::run(
+                AggregationUpdateJob::DecreaseActiveCounts {
+                    task_ids: new_children.into_iter().collect(),
+                },
+                &mut ctx,
+            );
+            return true;
+        }
+
+        let mut queue = AggregationUpdateQueue::new();
+
+        let active_count = get!(task, Activeness).map_or(0, |activeness| activeness.active_counter);
+        connect_children(task_id, &mut task, new_children, &mut queue, active_count);
+
+        drop(task);
+
+        {
+            let _span = tracing::trace_span!("connect new children").entered();
+            queue.execute(&mut ctx);
+        }
 
         let mut task = ctx.task(task_id, TaskDataCategory::All);
         let Some(in_progress) = remove!(task, InProgress) else {
