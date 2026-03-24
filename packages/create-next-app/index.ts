@@ -136,14 +136,14 @@ async function run(): Promise<void> {
       onState: onPromptState,
       type: 'toggle',
       name: 'resetPreferences',
-      message: 'Would you like to reset the saved preferences?',
+      message: 'Wipe the slate clean? Reset all saved preferences?',
       initial: false,
       active: 'Yes',
       inactive: 'No',
     })
     if (resetPreferences) {
       conf.clear()
-      console.log('The preferences have been reset successfully!')
+      console.log("Preferences nuked. You're a blank canvas again!")
     }
     process.exit(0)
   }
@@ -157,7 +157,7 @@ async function run(): Promise<void> {
       onState: onPromptState,
       type: 'text',
       name: 'path',
-      message: 'What is your project named?',
+      message: 'What shall we call this masterpiece?',
       initial: 'my-app',
       validate: (name) => {
         const validation = validateNpmName(basename(resolve(name)))
@@ -262,7 +262,7 @@ async function run(): Promise<void> {
              * process and not write to the file system.
              */
             onCancel: () => {
-              console.error('Exiting.')
+              console.error('Fine, be that way. Exiting.')
               process.exit(1)
             },
           }
@@ -498,12 +498,14 @@ async function notifyUpdate(): Promise<void> {
 
 async function exit(reason: { command?: string }) {
   console.log()
-  console.log('Aborting installation.')
+  console.log("Well, that didn't go as planned. Aborting installation.")
   if (reason.command) {
-    console.log(`  ${cyan(reason.command)} has failed.`)
+    console.log(`  ${cyan(reason.command)} threw a tantrum and failed.`)
   } else {
     console.log(
-      red('Unexpected error. Please report it as a bug:') + '\n',
+      red(
+        'Unexpected error. Not your fault (probably). Please report it as a bug:'
+      ) + '\n',
       reason
     )
   }

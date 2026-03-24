@@ -145,7 +145,9 @@ export async function createApp({
   const isOnline = !useYarn || (await getOnline())
   const originalDirectory = process.cwd()
 
-  console.log(`Creating a new Next.js app in ${green(root)}.`)
+  console.log(
+    `Conjuring a shiny new Next.js app in ${green(root)}. Hold tight.`
+  )
   console.log()
 
   process.chdir(root)
@@ -163,7 +165,7 @@ export async function createApp({
         console.log(
           `Downloading files from repo ${cyan(
             example
-          )}. This might take a moment.`
+          )}. Bribing the internet... please wait.`
         )
         console.log()
         await retry(() => downloadAndExtractRepo(root, repoInfo2), {
@@ -173,7 +175,7 @@ export async function createApp({
         console.log(
           `Downloading files for example ${cyan(
             example
-          )}. This might take a moment.`
+          )}. Good things come to those who wait (briefly).`
         )
         console.log()
         await retry(() => downloadAndExtractExample(root, example), {
@@ -212,7 +214,9 @@ export async function createApp({
 
     hasPackageJson = existsSync(packageJsonPath)
     if (!skipInstall && hasPackageJson) {
-      console.log('Installing packages. This might take a couple of minutes.')
+      console.log(
+        "Installing packages. Time to grab a coffee — or just stare at the terminal, we don't judge."
+      )
       console.log()
 
       await install(packageManager, isOnline)
@@ -240,10 +244,10 @@ export async function createApp({
   }
 
   if (disableGit) {
-    console.log('Skipping git initialization.')
+    console.log('Skipping git initialization. Living dangerously, I see.')
     console.log()
   } else if (tryGitInit(root)) {
-    console.log('Initialized a git repository.')
+    console.log('Git repository initialized. Your future self will thank you.')
     console.log()
   }
 
@@ -254,21 +258,23 @@ export async function createApp({
     cdpath = appPath
   }
 
-  console.log(`${green('Success!')} Created ${appName} at ${appPath}`)
+  console.log(
+    `${green('Boom!')} Created ${appName} at ${appPath}. It\'s alive!`
+  )
 
   if (hasPackageJson) {
-    console.log('Inside that directory, you can run several commands:')
+    console.log("Inside that directory, you're now the proud parent of:")
     console.log()
     console.log(cyan(`  ${packageManager} ${useYarn ? '' : 'run '}dev`))
-    console.log('    Starts the development server.')
+    console.log('    Starts the development server. (Your new happy place.)')
     console.log()
     console.log(cyan(`  ${packageManager} ${useYarn ? '' : 'run '}build`))
-    console.log('    Builds the app for production.')
+    console.log('    Builds the app for production. No pressure.')
     console.log()
     console.log(cyan(`  ${packageManager} start`))
-    console.log('    Runs the built app in production mode.')
+    console.log('    Runs the built app in production mode. The real deal.')
     console.log()
-    console.log('We suggest that you begin by typing:')
+    console.log('We humbly suggest you kick things off by typing:')
     console.log()
     console.log(cyan('  cd'), cdpath)
     console.log(`  ${cyan(`${packageManager} ${useYarn ? '' : 'run '}dev`)}`)

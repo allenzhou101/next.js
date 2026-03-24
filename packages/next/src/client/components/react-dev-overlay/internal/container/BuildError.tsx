@@ -32,14 +32,14 @@ export const BuildError: React.FC<BuildErrorProps> = function BuildError({
               id="nextjs__container_errors_label"
               className="nextjs__container_errors_label"
             >
-              {'Build Error'}
+              {"Build Error (It's not you... it might be you.)"}
             </h1>
             <VersionStalenessInfo versionInfo={versionInfo} />
             <p
               id="nextjs__container_errors_desc"
               className="nextjs__container_errors_desc"
             >
-              Failed to compile
+              Oops. The compiler had feelings about your code.
             </p>
           </DialogHeader>
           <DialogBody className="nextjs-container-errors-body">
@@ -47,8 +47,8 @@ export const BuildError: React.FC<BuildErrorProps> = function BuildError({
             <footer>
               <p id="nextjs__container_build_error_desc">
                 <small>
-                  This error occurred during the build process and can only be
-                  dismissed by fixing the error.
+                  This error won't budge until you fix it. No pressure, but
+                  everyone is watching.
                 </small>
               </p>
             </footer>
