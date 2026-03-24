@@ -17,26 +17,27 @@ export function Base() {
           --size-font-big: 20px;
           --size-font-bigger: 24px;
 
-          --color-background: white;
-          --color-font: #757575;
-          --color-backdrop: rgba(17, 17, 17, 0.2);
-          --color-border-shadow: rgba(0, 0, 0, 0.145);
+          --color-background: #0033cc;
+          --color-font: #cce0ff;
+          --color-backdrop: rgba(0, 51, 204, 0.2);
+          --color-border-shadow: rgba(0, 85, 255, 0.3);
 
-          --color-title-color: #1f1f1f;
-          --color-stack-h6: #222;
-          --color-stack-headline: #666;
-          --color-stack-subline: #999;
-          --color-stack-notes: #777;
+          --color-title-color: #e0f0ff;
+          --color-stack-h6: #a8c8ff;
+          --color-stack-headline: #6699ff;
+          --color-stack-subline: #4477cc;
+          --color-stack-notes: #5588dd;
 
-          --color-accents-1: #808080;
-          --color-accents-2: #222222;
-          --color-accents-3: #404040;
+          --color-accents-1: #3366cc;
+          --color-accents-2: #0022aa;
+          --color-accents-3: #2255bb;
 
           --color-text-color-red-1: #ff5555;
-          --color-text-background-red-1: #fff9f9;
+          --color-text-background-red-1: #001a66;
 
-          --font-stack-monospace: 'SFMono-Regular', Consolas, 'Liberation Mono',
-            Menlo, Courier, monospace;
+          --font-stack-monospace:
+            'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier,
+            monospace;
           --font-stack-sans: -apple-system, 'Source Sans Pro', sans-serif;
 
           --color-ansi-selection: rgba(95, 126, 151, 0.48);
@@ -63,20 +64,20 @@ export function Base() {
 
         @media (prefers-color-scheme: dark) {
           :host {
-            --color-background: rgb(28, 28, 30);
-            --color-font: white;
-            --color-backdrop: rgb(44, 44, 46);
-            --color-border-shadow: rgba(255, 255, 255, 0.145);
+            --color-background: #001a66;
+            --color-font: #a8c8ff;
+            --color-backdrop: rgb(0, 26, 102);
+            --color-border-shadow: rgba(100, 170, 255, 0.2);
 
-            --color-title-color: #fafafa;
-            --color-stack-h6: rgb(200, 200, 204);
-            --color-stack-headline: rgb(99, 99, 102);
-            --color-stack-notes: #a9a9a9;
-            --color-stack-subline: rgb(121, 121, 121);
+            --color-title-color: #cce0ff;
+            --color-stack-h6: #88aaff;
+            --color-stack-headline: #4466bb;
+            --color-stack-notes: #7799cc;
+            --color-stack-subline: #5577aa;
 
-            --color-accents-3: rgb(118, 118, 118);
+            --color-accents-3: #3355aa;
 
-            --color-text-background-red-1: #2a1e1e;
+            --color-text-background-red-1: #001a66;
           }
         }
 
